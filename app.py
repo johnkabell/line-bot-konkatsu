@@ -112,7 +112,12 @@ def create_reply_text(user_message: str, user_id: str) -> str:
     if not text:
         return "メッセージを入力してください"
 
+    # 現在の利用回数を取得
+    current_count = user_counts.get(user_id, 0)
+
+    # =========================
     # 🔥 添削モード
+    # =========================
     if "添削" in text or "この返信どう" in text:
         prompt = f"""
 以下のメッセージを婚活的に添削してください。
@@ -123,7 +128,9 @@ def create_reply_text(user_message: str, user_id: str) -> str:
 """
         return ask_ai(prompt, user_id)
 
+    # =========================
     # 🔥 プロフィール改善モード
+    # =========================
     if "プロフィール" in text:
         prompt = f"""
 以下のプロフィールを婚活的に改善してください。
@@ -132,8 +139,55 @@ def create_reply_text(user_message: str, user_id: str) -> str:
 """
         return ask_ai(prompt, user_id)
 
-    # 🔥 通常相談
-    return ask_ai(text, user_id)
+    # =========================
+    # 🔥 ユーザータイプ判定
+    # =========================
+    app_name = None
+    app_link = None
+    reason = ""
+
+    if "結婚" in text or "真剣" in text:
+        app_name = "ブライダルネット"
+        app_link = "https://あなたのアフィリンク1"
+        reason = "真剣度が高い人が多く、結婚目的なら相性がいいです"
+
+    elif "遊び" in text or "軽い" in text or "恋人" in text:
+        app_name = "with"
+        app_link = "https://あなたのアフィリンク2"
+        reason = "相性重視の設計なので、恋愛寄りなら使いやすいです"
+
+    elif "ハイスペ" in text or "年収" in text or "レベル高い" in text:
+        app_name = "東カレデート"
+        app_link = "https://あなたのアフィリンク3"
+        reason = "条件重視の出会いを狙うなら向いています"
+
+    elif "マッチしない" in text or "いいね来ない" in text:
+        app_name = "Pairs"
+        app_link = "https://あなたのアフィリンク4"
+        reason = "会員数が多いので、まずマッチ数を増やしたい人向きです"
+
+    # =========================
+    # 🔥 AI回答生成
+    # =========================
+    base_reply = ask_ai(text, user_id)
+
+    # =========================
+    # 🔥 3回目以降だけアフィ誘導
+    # =========================
+    if current_count >= 3 and app_name and app_link:
+        affiliate_text = f"""
+
+ちなみに、今の状況だとアプリ選びも少し重要です。
+
+あなたのタイプなら「{app_name}」が合っています。
+{reason}
+
+無料で見られるので、必要ならチェックしてみてください👇
+{app_link}
+"""
+        return base_reply + affiliate_text
+
+    return base_reply
 
 # =========================
 # OpenAI呼び出し
