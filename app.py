@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 # 初期設定
 # =========================
 load_dotenv()
-
+user_counts = {}
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -65,15 +65,30 @@ async def callback(request: Request):
 # =========================
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event: MessageEvent):
-    user_message = event.message.text
-    user_id = event.source.user_id
-
-    logger.info("受信メッセージ: %s", user_message)
-    logger.info("user_id: %s", user_id)
-
-    reply_text = create_reply_text(user_message, user_id)
-
     try:
+        user_message = event.message.text
+        user_id = event.source.user_id
+
+        logger.info("受信メッセージ: %s", user_message)
+        logger.info("user_id: %s", user_id)
+
+        # 初回なら0
+        if user_id not in user_counts:
+            user_counts[user_id] = 0
+
+        user_counts[user_id] += 1
+        logger.info("利用回数: %s", user_counts[user_id])
+
+        # 回数制限チェック
+        if user_counts[user_id] > 5:
+            reply_text = (
+                "無料相談は5回までです🙏\n\n"
+                "続きはこちら👇\n"
+                "https://あなたのリンク"
+            )
+        else:
+            reply_text = create_reply_text(user_message, user_id)
+
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message(
@@ -82,7 +97,9 @@ def handle_message(event: MessageEvent):
                     messages=[TextMessage(text=reply_text)]
                 )
             )
+
         logger.info("返信成功: %s", reply_text)
+
     except Exception:
         logger.exception("LINE返信処理でエラーが発生しました")
 
