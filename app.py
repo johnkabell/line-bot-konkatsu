@@ -90,7 +90,7 @@ def handle_message(event: MessageEvent):
                 "ここまで相談してくれた内容を見る限り、"
                 "写真・プロフィール・戦略のどこかで損している可能性があります。\n\n"
                 "本気で改善したい人は、一度プロに相談してみるのもありです👇\n"
-                "https://www.wealsma.com/"
+                "https://px.a8.net/svt/ejp?a8mat=4B1UA0+90H9GY+4HHW+5YJRM"
             )
         else:
             reply_text = create_reply_text(user_message, user_id)
