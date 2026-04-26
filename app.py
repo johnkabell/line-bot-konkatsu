@@ -142,7 +142,10 @@ def create_reply_text(user_message: str, user_id: str) -> str:
     app_name = "ウェルスマ"
     app_link = "https://www.wealsma.com/"
 
-prompt = f"""
+    app_name = "ウェルスマ"
+    app_link = "https://www.wealsma.com/"
+
+    prompt = f"""
 ユーザーの発言：
 {text}
 
@@ -157,6 +160,23 @@ prompt = f"""
 ・最後に次に送ってほしい情報を1つだけ聞く
 """
     base_reply = ask_ai(prompt, user_id)
+
+    # 3回目だけ自然に誘導
+    if current_count == 3:
+        affiliate_text = f"""
+
+正直、この状態だと自力だけで改善するのは少し遠回りかもしれません。
+
+このパターンはかなり多くて、
+原因は「写真・プロフィール・戦略」のどこかで損していることが多いです。
+
+一度プロに状況を見てもらうと、改善点がかなり明確になります👇
+{app_name}
+{app_link}
+"""
+        return base_reply + affiliate_text
+
+    return base_reply
 
     # 3回目だけ自然に誘導
     if current_count == 3:
