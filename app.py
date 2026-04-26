@@ -20,12 +20,14 @@ from dotenv import load_dotenv
 # 初期設定
 # =========================
 load_dotenv()
+
 user_counts = {}
+user_histories = {}
+
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-OPENAI_MODEL = "gpt-5-nano"  # ←安いモデル
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-nano")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,8 +38,11 @@ configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
-# 🔥 ユーザーごとの履歴
-user_histories = {}
+
+@app.get("/")
+async def root():
+    return {"message": "LINE Bot is running"}
+
 
 # =========================
 # Webhook
@@ -60,6 +65,7 @@ async def callback(request: Request):
 
     return "OK"
 
+
 # =========================
 # メッセージ受信
 # =========================
@@ -72,19 +78,19 @@ def handle_message(event: MessageEvent):
         logger.info("受信メッセージ: %s", user_message)
         logger.info("user_id: %s", user_id)
 
-        # 初回なら0
         if user_id not in user_counts:
             user_counts[user_id] = 0
 
         user_counts[user_id] += 1
         logger.info("利用回数: %s", user_counts[user_id])
 
-        # 回数制限チェック
         if user_counts[user_id] > 5:
             reply_text = (
                 "無料相談は5回までです🙏\n\n"
-                "続きはこちら👇\n"
-                "https://あなたのリンク"
+                "ここまで相談してくれた内容を見る限り、"
+                "写真・プロフィール・戦略のどこかで損している可能性があります。\n\n"
+                "本気で改善したい人は、一度プロに相談してみるのもありです👇\n"
+                "https://www.wealsma.com/"
             )
         else:
             reply_text = create_reply_text(user_message, user_id)
@@ -103,6 +109,7 @@ def handle_message(event: MessageEvent):
     except Exception:
         logger.exception("LINE返信処理でエラーが発生しました")
 
+
 # =========================
 # AI処理
 # =========================
@@ -112,12 +119,8 @@ def create_reply_text(user_message: str, user_id: str) -> str:
     if not text:
         return "メッセージを入力してください"
 
-    # 現在の利用回数を取得
     current_count = user_counts.get(user_id, 0)
 
-    # =========================
-    # 🔥 添削モード
-    # =========================
     if "添削" in text or "この返信どう" in text:
         prompt = f"""
 以下のメッセージを婚活的に添削してください。
@@ -128,9 +131,6 @@ def create_reply_text(user_message: str, user_id: str) -> str:
 """
         return ask_ai(prompt, user_id)
 
-    # =========================
-    # 🔥 プロフィール改善モード
-    # =========================
     if "プロフィール" in text:
         prompt = f"""
 以下のプロフィールを婚活的に改善してください。
@@ -139,67 +139,35 @@ def create_reply_text(user_message: str, user_id: str) -> str:
 """
         return ask_ai(prompt, user_id)
 
-    # =========================
-    # 🔥 ユーザータイプ判定
-    # =========================
-    app_name = None
-    app_link = None
-    reason = ""
+    app_name = "ウェルスマ"
+    app_link = "https://www.wealsma.com/"
 
-        app_name = "ウェルスマ"
-        app_link = "https://www.wealsma.com/"
-
-    # if "結婚" in text or "真剣" in text:
-    #     app_name = "ブライダルネット"
-    #     app_link = "https://あなたのアフィリンク1"
-    #     reason = "真剣度が高い人が多く、結婚目的なら相性がいいです"
-
-    # elif "遊び" in text or "軽い" in text or "恋人" in text:
-    #     app_name = "with"
-    #     app_link = "https://あなたのアフィリンク2"
-    #     reason = "相性重視の設計なので、恋愛寄りなら使いやすいです"
-
-    # elif "ハイスペ" in text or "年収" in text or "レベル高い" in text:
-    #     app_name = "東カレデート"
-    #     app_link = "https://あなたのアフィリンク3"
-    #     reason = "条件重視の出会いを狙うなら向いています"
-
-    # elif "マッチしない" in text or "いいね来ない" in text:
-    #     app_name = "Pairs"
-    #     app_link = "https://あなたのアフィリンク4"
-    #     reason = "会員数が多いので、まずマッチ数を増やしたい人向きです"
-
-    # =========================
-    # 🔥 AI回答生成
-    # =========================
     prompt = f"""
-    ユーザーの相談：
-    {text}
+ユーザーの相談：
+{text}
 
-    上記に対して、婚活コンサルとして具体的に改善点を指摘してください。
-    """
+上記に対して、婚活コンサルとして具体的に改善点を指摘してください。
+"""
+
     base_reply = ask_ai(prompt, user_id)
 
-    # =========================
-    # 🔥 3回目以降だけアフィ誘導
-    # =========================
-    if current_count >= 1 and app_name and app_link:
+    # 3回目だけ自然に誘導
+    if current_count == 3:
         affiliate_text = f"""
 
-    正直、この状態だとマッチしないのも普通です。
+正直、この状態だと自力だけで改善するのは少し遠回りかもしれません。
 
-    このパターンかなり多くて、
-    原因はほぼ「写真か戦略ミス」です。
+このパターンはかなり多くて、
+原因は「写真・プロフィール・戦略」のどこかで損していることが多いです。
 
-    アプリだけで改善するのは厳しいので、
-    一度プロに見てもらった方が早いです👇
-     {app_name}
-     {app_link}
-     
-        """
+一度プロに状況を見てもらうと、改善点がかなり明確になります👇
+{app_name}
+{app_link}
+"""
         return base_reply + affiliate_text
 
     return base_reply
+
 
 # =========================
 # OpenAI呼び出し
@@ -207,50 +175,47 @@ def create_reply_text(user_message: str, user_id: str) -> str:
 def ask_ai(prompt: str, user_id: str) -> str:
 
     if user_id not in user_histories:
-        "user_id not in user_histories:
-    user_histories[user_id] = [
-        {
-            "role": "system",
-            "content": """
-            あなたは婚活専門のコンサルタントです。
-            特に「マッチングアプリでうまくいかない男性」に対してアドバイスを行います。
+        user_histories[user_id] = [
+            {
+                "role": "system",
+                "content": """
+あなたは婚活専門のコンサルタントです。
+特に「マッチングアプリでうまくいかない男性」に対してアドバイスを行います。
 
-            ▼基本スタンス
-            ・優しすぎない（現実を正しく伝える）
-            ・ただし否定ではなく改善に導く
-            ・原因を特定し、具体的な改善策を出す
+▼基本スタンス
+・優しすぎない
+・現実を正しく伝える
+・ただし否定ではなく改善に導く
+・原因を特定し、具体的な改善策を出す
 
-            ▼絶対ルール
-            ・抽象論は禁止（例：「頑張りましょう」などNG）
-            ・必ず「なぜダメか」を説明する
-            ・改善方法は具体的に出す（行動レベル）
-            ・ユーザーが気づいていない問題を指摘する
+▼絶対ルール
+・抽象論は禁止
+・必ず「なぜダメか」を説明する
+・改善方法は具体的に出す
+・ユーザーが気づいていない問題を指摘する
 
-            ▼重要
-            ・マッチしない原因の8割は写真・プロフィールにあると前提にする
-            ・特に写真の問題を優先的に疑う
-            ・自撮り・暗い写真・無表情などは明確に指摘する
+▼重要
+・マッチしない原因の多くは写真・プロフィール・戦略にあると考える
+・特に写真の問題を優先的に疑う
+・自撮り、暗い写真、無表情、清潔感不足は明確に指摘する
 
-            ▼話し方
-            ・「正直」「かなり多い」「このパターンは〜」などリアルな言い回し
-            ・断定しすぎず、でも曖昧にしない
-            ・少し厳しめだが、改善すれば良くなる前提で話す
+▼話し方
+・「正直」「このパターンはかなり多い」などリアルな言い回しを使う
+・少し厳しめだが、改善すれば良くなる前提で話す
+・結論→理由→具体策の順で答える
 
-            ▼ゴール
-            ・ユーザーに「このままだとまずい」と気づかせる
-            ・その上で「じゃあどうすればいいか」を納得させる
+▼ゴール
+・ユーザーに「このままだとまずい」と気づかせる
+・その上で「じゃあどうすればいいか」を納得させる
 
-            ▼NG
-            ・過度に優しいだけの回答
-            ・誰にでも当てはまる一般論
-            ・結論がぼやける回答
-            """
-        }
-    ]
+▼NG
+・過度に優しいだけの回答
+・誰にでも当てはまる一般論
+・結論がぼやける回答
+"""
             }
         ]
 
-    # ユーザー発言追加
     user_histories[user_id].append({
         "role": "user",
         "content": prompt
@@ -264,13 +229,11 @@ def ask_ai(prompt: str, user_id: str) -> str:
 
         reply = response.output_text.strip()
 
-        # AIの返答も履歴に追加
         user_histories[user_id].append({
             "role": "assistant",
             "content": reply
         })
 
-        # 履歴制限（重要）
         if len(user_histories[user_id]) > 20:
             user_histories[user_id] = user_histories[user_id][-20:]
 
