@@ -142,8 +142,8 @@ def create_reply_text(user_message: str, user_id: str) -> str:
     app_name = "naco-do"
     app_link = "https://px.a8.net/svt/ejp?a8mat=4B1UA0+90H9GY+4HHW+5YJRM"
 
-    app_name = "naco-do"
-    app_link = "https://px.a8.net/svt/ejp?a8mat=4B1UA0+90H9GY+4HHW+5YJRM"
+    app_name = "Photojoy"
+    app_link = "https://px.a8.net/svt/ejp?a8mat=4B1V1T+E9T3UA+4HMW+5YJRM"
 
     prompt = f"""
 ユーザーの発言：
