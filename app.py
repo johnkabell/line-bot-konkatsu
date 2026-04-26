@@ -146,45 +146,57 @@ def create_reply_text(user_message: str, user_id: str) -> str:
     app_link = None
     reason = ""
 
-    if "結婚" in text or "真剣" in text:
-        app_name = "ブライダルネット"
-        app_link = "https://あなたのアフィリンク1"
-        reason = "真剣度が高い人が多く、結婚目的なら相性がいいです"
+        app_name = "ウェルスマ"
+        app_link = "https://www.wealsma.com/"
 
-    elif "遊び" in text or "軽い" in text or "恋人" in text:
-        app_name = "with"
-        app_link = "https://あなたのアフィリンク2"
-        reason = "相性重視の設計なので、恋愛寄りなら使いやすいです"
+    # if "結婚" in text or "真剣" in text:
+    #     app_name = "ブライダルネット"
+    #     app_link = "https://あなたのアフィリンク1"
+    #     reason = "真剣度が高い人が多く、結婚目的なら相性がいいです"
 
-    elif "ハイスペ" in text or "年収" in text or "レベル高い" in text:
-        app_name = "東カレデート"
-        app_link = "https://あなたのアフィリンク3"
-        reason = "条件重視の出会いを狙うなら向いています"
+    # elif "遊び" in text or "軽い" in text or "恋人" in text:
+    #     app_name = "with"
+    #     app_link = "https://あなたのアフィリンク2"
+    #     reason = "相性重視の設計なので、恋愛寄りなら使いやすいです"
 
-    elif "マッチしない" in text or "いいね来ない" in text:
-        app_name = "Pairs"
-        app_link = "https://あなたのアフィリンク4"
-        reason = "会員数が多いので、まずマッチ数を増やしたい人向きです"
+    # elif "ハイスペ" in text or "年収" in text or "レベル高い" in text:
+    #     app_name = "東カレデート"
+    #     app_link = "https://あなたのアフィリンク3"
+    #     reason = "条件重視の出会いを狙うなら向いています"
+
+    # elif "マッチしない" in text or "いいね来ない" in text:
+    #     app_name = "Pairs"
+    #     app_link = "https://あなたのアフィリンク4"
+    #     reason = "会員数が多いので、まずマッチ数を増やしたい人向きです"
 
     # =========================
     # 🔥 AI回答生成
     # =========================
-    base_reply = ask_ai(text, user_id)
+    prompt = f"""
+    ユーザーの相談：
+    {text}
+
+    上記に対して、婚活コンサルとして具体的に改善点を指摘してください。
+    """
+    base_reply = ask_ai(prompt, user_id)
 
     # =========================
     # 🔥 3回目以降だけアフィ誘導
     # =========================
-    if current_count >= 3 and app_name and app_link:
+    if current_count >= 1 and app_name and app_link:
         affiliate_text = f"""
 
-ちなみに、今の状況だとアプリ選びも少し重要です。
+    正直、この状態だとマッチしないのも普通です。
 
-あなたのタイプなら「{app_name}」が合っています。
-{reason}
+    このパターンかなり多くて、
+    原因はほぼ「写真か戦略ミス」です。
 
-無料で見られるので、必要ならチェックしてみてください👇
-{app_link}
-"""
+    アプリだけで改善するのは厳しいので、
+    一度プロに見てもらった方が早いです👇
+     {app_name}
+     {app_link}
+     
+        """
         return base_reply + affiliate_text
 
     return base_reply
@@ -195,27 +207,46 @@ def create_reply_text(user_message: str, user_id: str) -> str:
 def ask_ai(prompt: str, user_id: str) -> str:
 
     if user_id not in user_histories:
-        user_histories[user_id] = [
-            {
-                "role": "system",
-                "content": """
-あなたは30代男性向けの婚活アドバイザーです。
+        "user_id not in user_histories:
+    user_histories[user_id] = [
+        {
+            "role": "system",
+            "content": """
+            あなたは婚活専門のコンサルタントです。
+            特に「マッチングアプリでうまくいかない男性」に対してアドバイスを行います。
 
-マッチングアプリ（Pairs、東カレ、ブライダルネットなど）に詳しく、
-現実的で具体的な改善案を簡潔に提示してください。
+            ▼基本スタンス
+            ・優しすぎない（現実を正しく伝える）
+            ・ただし否定ではなく改善に導く
+            ・原因を特定し、具体的な改善策を出す
 
-以下を重視してください：
-・プロフィール改善
-・写真戦略
-・メッセージ改善
-・デート戦略
-・マッチ率向上
+            ▼絶対ルール
+            ・抽象論は禁止（例：「頑張りましょう」などNG）
+            ・必ず「なぜダメか」を説明する
+            ・改善方法は具体的に出す（行動レベル）
+            ・ユーザーが気づいていない問題を指摘する
 
-ルール：
-・抽象論は禁止（必ず具体的に）
-・優しさ7：厳しさ3
-・結論→理由→具体例の順で話す
-"""
+            ▼重要
+            ・マッチしない原因の8割は写真・プロフィールにあると前提にする
+            ・特に写真の問題を優先的に疑う
+            ・自撮り・暗い写真・無表情などは明確に指摘する
+
+            ▼話し方
+            ・「正直」「かなり多い」「このパターンは〜」などリアルな言い回し
+            ・断定しすぎず、でも曖昧にしない
+            ・少し厳しめだが、改善すれば良くなる前提で話す
+
+            ▼ゴール
+            ・ユーザーに「このままだとまずい」と気づかせる
+            ・その上で「じゃあどうすればいいか」を納得させる
+
+            ▼NG
+            ・過度に優しいだけの回答
+            ・誰にでも当てはまる一般論
+            ・結論がぼやける回答
+            """
+        }
+    ]
             }
         ]
 
