@@ -84,7 +84,7 @@ def handle_message(event: MessageEvent):
         user_counts[user_id] += 1
         logger.info("利用回数: %s", user_counts[user_id])
 
-        if user_counts[user_id] > 5:
+        if user_counts[user_id] > 3:
             reply_text = (
                 "無料相談は3回までです🙏\n\n"
                 "ここまで相談してくれた内容を見る限り、"
