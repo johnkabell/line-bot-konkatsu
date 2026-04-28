@@ -1,4 +1,6 @@
 .env
+bot_state.sqlite3
+bot_state.sqlite3-*
 __pycache__/
 *.pyc
 venv/
